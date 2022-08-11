@@ -20,6 +20,7 @@ import (
 
 var (
 	deployLocal bool
+	useLedger   bool
 	keyName     string
 )
 
@@ -47,6 +48,7 @@ subnet and deploy it on Fuji or Mainnet.`,
 		Args:         cobra.ExactArgs(1),
 	}
 	cmd.Flags().BoolVarP(&deployLocal, "local", "l", false, "deploy to a local network")
+	cmd.Flags().BoolVarP(&useLedger, "ledger", "l", false, "use ledger to sign (required for mainnet)")
 	cmd.Flags().StringVarP(&keyName, "key", "k", "", "select the key to use for fuji deploys")
 	return cmd
 }
@@ -143,10 +145,12 @@ func deploySubnet(cmd *cobra.Command, args []string) error {
 		return nil
 
 	case models.Fuji: // just make the switch pass
-		if keyName == "" {
-			keyName, err = captureKeyName()
-			if err != nil {
-				return err
+		if !useLedger {
+			if keyName == "" {
+				keyName, err = captureKeyName()
+				if err != nil {
+					return err
+				}
 			}
 		}
 
@@ -178,7 +182,7 @@ func deploySubnet(cmd *cobra.Command, args []string) error {
 	}
 
 	// deploy to public network
-	deployer := subnet.NewPublicDeployer(app, app.GetKeyPath(keyName), network)
+	deployer := subnet.NewPublicDeployer(app, app.GetKeyPath(keyName), network, useLedger)
 	subnetID, blockchainID, err := deployer.Deploy(controlKeys, threshold, chain, chainGenesis)
 	if err != nil {
 		return err

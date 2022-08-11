@@ -20,6 +20,7 @@ import (
 	"github.com/ava-labs/avalanchego/vms/secp256k1fx"
 	"github.com/ava-labs/avalanchego/wallet/subnet/primary"
 	"github.com/ava-labs/avalanchego/wallet/subnet/primary/common"
+	"github.com/ava-labs/avalanchego/wallet/subnet/primary/keychain"
 )
 
 type PublicDeployer struct {
@@ -27,14 +28,16 @@ type PublicDeployer struct {
 	privKeyPath string
 	network     models.Network
 	app         *application.Avalanche
+	useLedger   bool
 }
 
-func NewPublicDeployer(app *application.Avalanche, privKeyPath string, network models.Network) *PublicDeployer {
+func NewPublicDeployer(app *application.Avalanche, privKeyPath string, network models.Network, useLedger bool) *PublicDeployer {
 	return &PublicDeployer{
 		LocalSubnetDeployer: *NewLocalSubnetDeployer(app),
 		app:                 app,
 		privKeyPath:         privKeyPath,
 		network:             network,
+		useLedger:           useLedger,
 	}
 }
 
@@ -92,28 +95,55 @@ func (d *PublicDeployer) loadWallet(preloadTxs ...ids.ID) (primary.Wallet, strin
 		networkID uint32
 	)
 
+	var (
+		wallet primary.Wallet
+		err    error
+	)
+
 	switch d.network {
 	case models.Fuji:
 		api = constants.FujiAPIEndpoint
 		networkID = avago_constants.FujiID
+		if d.useLedger {
+			k, err := key.NewHard(networkID)
+			if err != nil {
+				return nil, "", err
+			}
+			lkc := keychain.NewLedgerKeychain(k.GetLedger())
+
+			wallet, err = primary.NewLedgerWalletWithTxs(ctx, api, lkc, preloadTxs...)
+			if err != nil {
+				return nil, "", err
+			}
+		} else {
+			sk, err := key.LoadSoft(networkID, d.privKeyPath)
+			kc := sk.KeyChain()
+
+			wallet, err = primary.NewWalletWithTxs(ctx, api, kc, preloadTxs...)
+			if err != nil {
+				return nil, "", err
+			}
+		}
+		if err != nil {
+			return nil, "", err
+		}
 	case models.Mainnet:
 		api = constants.MainnetAPIEndpoint
 		networkID = avago_constants.MainnetID
+		k, err := key.NewHard(networkID)
+		if err != nil {
+			return nil, "", err
+		}
+		lkc := keychain.NewLedgerKeychain(k.GetLedger())
+
+		wallet, err = primary.NewLedgerWalletWithTxs(ctx, api, lkc, preloadTxs...)
+		if err != nil {
+			return nil, "", err
+		}
 	default:
 		return nil, "", fmt.Errorf("unsupported public network")
 	}
 
-	sf, err := key.LoadSoft(networkID, d.privKeyPath)
-	if err != nil {
-		return nil, "", err
-	}
-
-	kc := sf.KeyChain()
-
-	wallet, err := primary.NewWalletWithTxs(ctx, api, kc, preloadTxs...)
-	if err != nil {
-		return nil, "", err
-	}
 	return wallet, api, nil
 }
 

@@ -34,7 +34,7 @@ snapshot can then be restarted without parameter
 }
 
 func stopNetwork(cmd *cobra.Command, args []string) error {
-	cli, err := binutils.NewGRPCClient()
+	cli, err := binutils.NewGRPCClient(app.Log)
 	if err != nil {
 		return err
 	}

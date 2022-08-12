@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/spf13/cobra"
+	"go.uber.org/zap"
 
 	"github.com/ava-labs/avalanche-cli/pkg/binutils"
 	"github.com/ava-labs/avalanche-cli/pkg/constants"
@@ -41,11 +42,11 @@ func clean(cmd *cobra.Command, args []string) {
 	app.Log.Info("killing gRPC server process...")
 
 	if err := subnet.SetDefaultSnapshot(app.GetSnapshotsDir(), true); err != nil {
-		app.Log.Warn("failed resetting default snapshot: %s\n", err)
+		app.Log.Warn("failed resetting default snapshot", zap.Error(err))
 	}
 
 	if err := binutils.KillgRPCServerProcess(app); err != nil {
-		app.Log.Warn("failed killing server process: %s\n", err)
+		app.Log.Warn("failed killing server process", zap.Error(err))
 	} else {
 		ux.Logger.PrintToUser("Process terminated.")
 	}

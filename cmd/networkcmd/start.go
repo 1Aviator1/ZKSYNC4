@@ -46,7 +46,7 @@ func startNetwork(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	cli, err := binutils.NewGRPCClient()
+	cli, err := binutils.NewGRPCClient(app.Log)
 	if err != nil {
 		return err
 	}

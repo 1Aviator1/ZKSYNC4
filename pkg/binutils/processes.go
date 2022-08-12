@@ -23,6 +23,7 @@ import (
 	"github.com/ava-labs/avalanchego/utils/perms"
 	"github.com/docker/docker/pkg/reexec"
 	"github.com/shirou/gopsutil/process"
+	"go.uber.org/zap"
 )
 
 // errGRPCTimeout is a common error message if the gRPC server can't be reached
@@ -43,12 +44,11 @@ func NewProcessChecker() ProcessChecker {
 }
 
 // NewGRPCClient hides away the details (params) of creating a gRPC server connection
-func NewGRPCClient() (client.Client, error) {
+func NewGRPCClient(log logging.Logger) (client.Client, error) {
 	client, err := client.New(client.Config{
-		LogLevel:    gRPCClientLogLevel,
 		Endpoint:    gRPCServerEndpoint,
 		DialTimeout: gRPCDialTimeout,
-	})
+	}, log)
 	if errors.Is(err, context.DeadlineExceeded) {
 		err = errGRPCTimeout
 	}
@@ -56,14 +56,14 @@ func NewGRPCClient() (client.Client, error) {
 }
 
 // NewGRPCClient hides away the details (params) of creating a gRPC server
-func NewGRPCServer(snapshotsDir string) (server.Server, error) {
+func NewGRPCServer(snapshotsDir string, log logging.Logger) (server.Server, error) {
 	return server.New(server.Config{
 		Port:                gRPCServerEndpoint,
 		GwPort:              gRPCGatewayEndpoint,
 		DialTimeout:         gRPCDialTimeout,
 		SnapshotsDir:        snapshotsDir,
 		RedirectNodesOutput: false,
-	})
+	}, log)
 }
 
 // IsServerProcessRunning returns true if the gRPC server is running,
@@ -153,7 +153,7 @@ func StartServerProcess(app *application.Avalanche) error {
 	}
 
 	if err := os.WriteFile(app.GetRunFile(), rfBytes, perms.ReadWrite); err != nil {
-		app.Log.Warn("could not write gRPC process info to file: %s", err)
+		app.Log.Warn("could not write gRPC process info to file", zap.Error(err))
 	}
 	return nil
 }
@@ -172,7 +172,7 @@ func GetAsyncContext() context.Context {
 }
 
 func KillgRPCServerProcess(app *application.Avalanche) error {
-	cli, err := NewGRPCClient()
+	cli, err := NewGRPCClient(app.Log)
 	if err != nil {
 		return err
 	}
@@ -212,12 +212,12 @@ func WatchServerProcess(serverCancel context.CancelFunc, errc chan error, log lo
 	signal.Notify(sigc, syscall.SIGINT, syscall.SIGTERM)
 	select {
 	case sig := <-sigc:
-		log.Warn("signal received: %s; closing server", sig.String())
+		log.Warn("signal received", zap.String("signal", sig.String()))
 		serverCancel()
 		err := <-errc
-		log.Warn("closed server: %s", err)
+		log.Warn("closed server", zap.Error(err))
 	case err := <-errc:
-		log.Warn("server closed: %s", err)
+		log.Warn("server closed", zap.Error(err))
 		serverCancel()
 	}
 }

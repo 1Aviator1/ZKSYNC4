@@ -27,9 +27,11 @@ import (
 	"github.com/ava-labs/avalanche-network-runner/server"
 	"github.com/ava-labs/avalanche-network-runner/utils"
 	"github.com/ava-labs/avalanchego/ids"
+	"github.com/ava-labs/avalanchego/utils/logging"
 	"github.com/ava-labs/avalanchego/utils/storage"
 	"github.com/ava-labs/coreth/core"
 	"github.com/ava-labs/coreth/params"
+	"go.uber.org/zap"
 )
 
 const (
@@ -60,7 +62,7 @@ func NewLocalSubnetDeployer(app *application.Avalanche) *LocalSubnetDeployer {
 	}
 }
 
-type getGRPCClientFunc func() (client.Client, error)
+type getGRPCClientFunc func(log logging.Logger) (client.Client, error)
 
 type setDefaultSnapshotFunc func(string, bool) error
 
@@ -112,7 +114,7 @@ func (d *LocalSubnetDeployer) doDeploy(chain string, chainGenesis []byte, genesi
 		return ids.Empty, ids.Empty, err
 	}
 
-	cli, err := d.getClientFunc()
+	cli, err := d.getClientFunc(d.app.Log)
 	if err != nil {
 		return ids.Empty, ids.Empty, fmt.Errorf("error creating gRPC Client: %s", err)
 	}
@@ -146,7 +148,7 @@ func (d *LocalSubnetDeployer) doDeploy(chain string, chainGenesis []byte, genesi
 	if err != nil {
 		return ids.Empty, ids.Empty, fmt.Errorf("failed to create VM ID from %s: %w", chain, err)
 	}
-	d.app.Log.Debug("this VM will get ID: %s", chainVMID.String())
+	d.app.Log.Debug("this VM will get ID", zap.String("chain-vm-ID", chainVMID.String()))
 
 	if alreadyDeployed(chainVMID, clusterInfo) {
 		ux.Logger.PrintToUser("Subnet %s has already been deployed", chain)
@@ -308,7 +310,7 @@ func (d *LocalSubnetDeployer) setupLocalEnv() (string, error) {
 		}
 	*/
 
-	d.app.Log.Info("Avalanchego version is: %s", version)
+	d.app.Log.Info("Avalanchego version is", zap.String("version", version))
 
 	// TODO: would be nice if we could also here just use binutils.DownloadLatestReleaseVersion(),
 	// but unfortunately we don't have a consistent naming scheme between avalanchego and subnet-evm
@@ -350,7 +352,7 @@ func (d *LocalSubnetDeployer) setupLocalEnv() (string, error) {
 		return "", fmt.Errorf("OS not supported: %s", goos)
 	}
 
-	d.app.Log.Debug("starting download from %s...", avalanchegoURL)
+	d.app.Log.Debug("starting download", zap.String("download URL", avalanchegoURL))
 
 	resp, err := http.Get(avalanchegoURL)
 	if err != nil {

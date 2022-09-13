@@ -13,7 +13,6 @@ import (
 	"github.com/ava-labs/avalanche-cli/pkg/constants"
 	"github.com/ava-labs/avalanche-cli/pkg/prompts"
 	"github.com/ava-labs/avalanchego/utils/logging"
-	"github.com/ava-labs/avalanchego/version"
 	"github.com/stretchr/testify/require"
 )
 
@@ -29,33 +28,28 @@ const (
 
 	vm = "testvm"
 
-	testSubnetYaml = `subnet:
-  id: "abcd"
-  alias: "testsubnet"
-  homepage: "https://subnet.com"
-  description: It's a subnet
-  maintainers:
-    - "dev@subnet.com"
-  vms:
-    - "testvm1"
-    - "testvm2"
+	testSubnetYaml = `id:
+  testnet: "abcd"
+alias: "testsubnet"
+homepage: "https://subnet.com"
+description: It's a subnet
+maintainers:
+  - "dev@subnet.com"
+vms:
+  - "testvm1"
+  - "testvm2"
 `
 
-	testVMYaml = `vm:
-  id: "efgh"
-  alias: "testvm"
-  homepage: "https://vm.com"
-  description: "Virtual machine"
-  maintainers:
-    - "dev@vm.com"
-  installScript: "scripts/build.sh"
-  binaryPath: "build/sqja3uK17MJxfC7AN8nGadBw9JK5BcrsNwNynsqP5Gih8M5Bm"
-  url: "https://github.com/org/repo/archive/refs/tags/v1.0.0.tar.gz"
-  sha256: "1ac250f6c40472f22eaf0616fc8c886078a4eaa9b2b85fbb4fb7783a1db6af3f"
-  version:
-    major: 1
-    minor: 0
-    patch: 0
+	testVMYaml = `id: "efgh"
+alias: "testvm"
+homepage: "https://vm.com"
+description: "Virtual machine"
+maintainers:
+  - "dev@vm.com"
+installScript: "scripts/build.sh"
+binaryPath: "build/sqja3uK17MJxfC7AN8nGadBw9JK5BcrsNwNynsqP5Gih8M5Bm"
+url: "https://github.com/org/repo/archive/refs/tags/v1.0.0.tar.gz"
+sha256: "1ac250f6c40472f22eaf0616fc8c886078a4eaa9b2b85fbb4fb7783a1db6af3f"
 `
 )
 
@@ -208,7 +202,9 @@ func TestLoadSubnetFile_Success(t *testing.T) {
 	assert.NoError(err)
 
 	expectedSubnet := types.Subnet{
-		ID:          "abcd",
+		ID: map[string]string{
+			"testnet": "abcd",
+		},
 		Alias:       "testsubnet",
 		Homepage:    "https://subnet.com",
 		Description: "It's a subnet",
@@ -290,11 +286,6 @@ func TestLoadVMFile(t *testing.T) {
 		InstallScript: "scripts/build.sh",
 		URL:           "https://github.com/org/repo/archive/refs/tags/v1.0.0.tar.gz",
 		SHA256:        "1ac250f6c40472f22eaf0616fc8c886078a4eaa9b2b85fbb4fb7783a1db6af3f",
-		Version: version.Semantic{
-			Major: 1,
-			Minor: 0,
-			Patch: 0,
-		},
 	}
 
 	loadedVM, err := LoadVMFile(app, makeAlias(org1, repo1), vm)

@@ -51,14 +51,6 @@ func GetSubnets(app *application.Avalanche, repoAlias string) ([]string, error) 
 	return subnetOptions, nil
 }
 
-type SubnetWrapper struct {
-	Subnet types.Subnet `yaml:"subnet"`
-}
-
-type VMWrapper struct {
-	VM types.VM `yaml:"vm"`
-}
-
 func LoadSubnetFile(app *application.Avalanche, subnetKey string) (types.Subnet, error) {
 	repoAlias, subnetName, err := splitKey(subnetKey)
 	if err != nil {
@@ -66,19 +58,19 @@ func LoadSubnetFile(app *application.Avalanche, subnetKey string) (types.Subnet,
 	}
 
 	subnetYamlPath := filepath.Join(app.ApmDir, "repositories", repoAlias, "subnets", subnetName+".yaml")
-	var subnetWrapper SubnetWrapper
+	var sub types.Subnet
 
 	subnetYamlBytes, err := os.ReadFile(subnetYamlPath)
 	if err != nil {
 		return types.Subnet{}, err
 	}
 
-	err = yaml.Unmarshal(subnetYamlBytes, &subnetWrapper)
+	err = yaml.Unmarshal(subnetYamlBytes, &sub)
 	if err != nil {
 		return types.Subnet{}, err
 	}
 
-	return subnetWrapper.Subnet, nil
+	return sub, nil
 }
 
 func getVMsInSubnet(app *application.Avalanche, subnetKey string) ([]string, error) {
@@ -92,17 +84,17 @@ func getVMsInSubnet(app *application.Avalanche, subnetKey string) ([]string, err
 
 func LoadVMFile(app *application.Avalanche, repo, vm string) (types.VM, error) {
 	vmYamlPath := filepath.Join(app.ApmDir, "repositories", repo, "vms", vm+".yaml")
-	var vmWrapper VMWrapper
+	var loadedVM types.VM
 
 	vmYamlBytes, err := os.ReadFile(vmYamlPath)
 	if err != nil {
 		return types.VM{}, err
 	}
 
-	err = yaml.Unmarshal(vmYamlBytes, &vmWrapper)
+	err = yaml.Unmarshal(vmYamlBytes, &loadedVM)
 	if err != nil {
 		return types.VM{}, err
 	}
 
-	return vmWrapper.VM, nil
+	return loadedVM, nil
 }

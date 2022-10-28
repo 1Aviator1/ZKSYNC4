@@ -251,7 +251,7 @@ func updateVMByNetwork(sc models.Sidecar, targetVersion string, networkToUpgrade
 
 func updateToCustomBin(subnetName string, vmType models.VMType, sc models.Sidecar, networkToUpgrade string) error {
 	// get path
-
+	ux.Logger.PrintToUser("Not implemented")
 	// install update
 
 	// update sidecar

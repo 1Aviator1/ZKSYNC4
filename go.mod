@@ -10,6 +10,7 @@ require (
 	github.com/ava-labs/coreth v0.11.2
 	github.com/ava-labs/spacesvm v0.0.10-0.20221029001213-6925f62a1394
 	github.com/ava-labs/subnet-evm v0.4.3
+	github.com/aws/aws-sdk-go v1.44.151
 	github.com/docker/docker v20.10.21+incompatible
 	github.com/ethereum/go-ethereum v1.10.26
 	github.com/go-git/go-git/v5 v5.4.2
@@ -96,6 +97,7 @@ require (
 	github.com/jackpal/go-nat-pmp v1.0.2 // indirect
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
 	github.com/jessevdk/go-flags v1.5.0 // indirect
+	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/jrick/logrotate v1.0.0 // indirect
 	github.com/kevinburke/ssh_config v1.2.0 // indirect
 	github.com/kkdai/bstream v1.0.0 // indirect

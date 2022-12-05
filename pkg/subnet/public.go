@@ -54,7 +54,7 @@ func NewPublicDeployer(app *application.Avalanche, usingLedger bool, kc keychain
 // - if operation is not multisig (len(subnetAuthKeysStrs) == 1):
 //   - creates and issues an add validator tx, signing the tx with the wallet as the owner of fee outputs
 //     and the only one subnet auth key
-func (d *PublicDeployer) AddValidator(
+func (d *PublicDeployer) AddSubnetValidator(
 	subnetAuthKeysStrs []string,
 	subnet ids.ID,
 	nodeID ids.NodeID,
@@ -108,6 +108,30 @@ func (d *PublicDeployer) AddValidator(
 	return false, tx, nil
 }
 
+func (d *PublicDeployer) AddValidator(
+	nodeID ids.NodeID,
+	stakeAmount uint64,
+	startTime time.Time,
+	duration time.Duration,
+	delegationsFeeRate uint32,
+	rewardsOwner *secp256k1fx.OutputOwners,
+) (ids.ID, error) {
+	wallet, err := d.loadWallet()
+	if err != nil {
+		return ids.ID{}, err
+	}
+
+	validator := &validator.Validator{
+		NodeID: nodeID,
+		Start:  uint64(startTime.Unix()),
+		End:    uint64(startTime.Add(duration).Unix()),
+		Wght:   stakeAmount,
+	}
+
+	opts := []common.Option{}
+	return wallet.P().IssueAddValidatorTx(validator, rewardsOwner, delegationsFeeRate, opts...)
+}
+
 // deploys the given [chain]
 // - verifies that the wallet is one of the subnet auth keys (so as to sign the CreateBlockchain tx)
 // - creates a subnet using the given [controlKeys] and [threshold] as subnet authentication parameters
@@ -139,12 +163,12 @@ func (d *PublicDeployer) Deploy(
 
 	subnetAuthKeys, err := address.ParseToIDs(subnetAuthKeysStrs)
 	if err != nil {
-		return false, ids.Empty, ids.Empty, nil, err
+		return false, ids.Empty, ids.Empty, nil, fmt.Errorf("failed parsing IDs: %w", err)
 	}
 
 	ok, err := d.checkWalletHasSubnetAuthAddresses(subnetAuthKeys)
 	if err != nil {
-		return false, ids.Empty, ids.Empty, nil, err
+		return false, ids.Empty, ids.Empty, nil, fmt.Errorf("failed has subnetAuth addrs: %w", err)
 	}
 	if !ok {
 		return false, ids.Empty, ids.Empty, nil, ErrNoSubnetAuthKeysInWallet
@@ -152,7 +176,7 @@ func (d *PublicDeployer) Deploy(
 
 	subnetID, err := d.createSubnetTx(controlKeys, threshold, wallet)
 	if err != nil {
-		return false, ids.Empty, ids.Empty, nil, err
+		return false, ids.Empty, ids.Empty, nil, fmt.Errorf("failed creating subnet tx: %w", err)
 	}
 	ux.Logger.PrintToUser("Subnet has been created with ID: %s. Now creating blockchain...", subnetID.String())
 
@@ -166,12 +190,12 @@ func (d *PublicDeployer) Deploy(
 		isFullySigned = true
 		blockchainID, err = d.createAndIssueBlockchainTx(chain, vmID, subnetID, genesis, wallet)
 		if err != nil {
-			return false, ids.Empty, ids.Empty, nil, err
+			return false, ids.Empty, ids.Empty, nil, fmt.Errorf("failed create and issue bc tx: %w", err)
 		}
 	} else {
 		blockchainTx, err = d.createBlockchainTx(subnetAuthKeys, chain, vmID, subnetID, genesis, wallet)
 		if err != nil {
-			return false, ids.Empty, ids.Empty, nil, err
+			return false, ids.Empty, ids.Empty, nil, fmt.Errorf("failed create bc tx: %w", err)
 		}
 	}
 

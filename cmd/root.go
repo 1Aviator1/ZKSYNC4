@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 
 	"github.com/ava-labs/avalanche-cli/cmd/backendcmd"
+	"github.com/ava-labs/avalanche-cli/cmd/infracmd"
 	"github.com/ava-labs/avalanche-cli/cmd/keycmd"
 	"github.com/ava-labs/avalanche-cli/cmd/networkcmd"
 	"github.com/ava-labs/avalanche-cli/cmd/subnetcmd"
@@ -65,6 +66,8 @@ in with avalanche subnet create myNewSubnet.`,
 
 	// add transaction command
 	rootCmd.AddCommand(transactioncmd.NewCmd(app))
+
+	rootCmd.AddCommand(infracmd.NewCmd(app))
 	return rootCmd
 }
 

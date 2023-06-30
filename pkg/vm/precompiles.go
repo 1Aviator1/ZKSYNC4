@@ -183,6 +183,27 @@ func configureTransactionAllowList(app *application.Avalanche) (txallowlist.Conf
 	return config, cancelled, nil
 }
 
+func getAdminAndEnabledAddresses(adminPrompt, enabledPrompt, info string, app *application.Avalanche) ([]common.Address, []common.Address, bool, error) {
+	admins, cancelled, err := getAddressList(adminPrompt, info, app)
+	if err != nil || cancelled {
+		return nil, nil, false, err
+	}
+	adminsMap := make(map[string]bool)
+	for _, adminsAddress := range admins {
+		adminsMap[adminsAddress.String()] = true
+	}
+	enabled, cancelled, err := getAddressList(enabledPrompt, info, app)
+	if err != nil {
+		return nil, nil, false, err
+	}
+	for _, enabledAddress := range enabled {
+		if _, ok := adminsMap[enabledAddress.String()]; ok {
+			return nil, nil, false, fmt.Errorf("can't have address %s in both admin and enabled addresses", enabledAddress.String())
+		}
+	}
+	return admins, enabled, cancelled, nil
+}
+
 func configureMinterList(app *application.Avalanche) (nativeminter.Config, bool, error) {
 	config := nativeminter.Config{}
 	adminPrompt := "Configure native minting allow list"
